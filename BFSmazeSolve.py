@@ -16,7 +16,7 @@ def OpenMaze(filename):
         data = data.values
     except fileNotFoundException:
         print("File not found")
-    return data;
+    return data
 
 #-Scan locations by searching down columns... returns array[start Location, goal Location, list of wall locations]
 def ScanMaze(maze):
@@ -50,16 +50,22 @@ def SimplifyMaze(maze):
     return maze
 
 #-Check the surrounding 'nodes', 
+# k:    number step we're on
+# maze: path we've taken
 def MakeStep(k, maze):
     for i in range(len(maze)):
         for j in range(len(maze[i])):
             if maze[i][j] == k:
+                # above
                 if i>0 and maze[i-1][j] == 0 and a[i-1][j] == 0:
                     maze[i-1][j] = k + 1
+                # left
                 if j>0 and maze[i][j-1] == 0 and a[i][j-1] == 0:
                     maze[i][j-1] = k + 1
+                # down
                 if i<len(maze)-1 and maze[i+1][j] == 0 and a[i+1][j] == 0:
                     maze[i+1][j] = k + 1
+                # right
                 if j<len(maze[i])-1 and maze[i][j+1] == 0 and a[i][j+1] == 0:
                     maze[i][j+1] = k + 1
 
@@ -102,7 +108,7 @@ def getMazeFileName():
     return 'Maze/'+mazeFile+'.lay'
 
 def StartAnalysis():
-    nodesExpanded = 0
+    nodesExpanded = len(a) * len(a[0])
 
     #-Create an empty matrix to store the path
     maze = []
@@ -110,7 +116,6 @@ def StartAnalysis():
         maze.append([])
         for j in range(len(a[i])):
             maze[-1].append(0)
-            nodesExpanded += 1
 
     #-Save the start point, initialize counter variable (k)
     i,j = start
@@ -130,13 +135,14 @@ def StartAnalysis():
     i, j = end
     k = maze[i][j]
 
-    #-Traverse the matrix to find the shortest path (BFS)
-    maze, thePath, maxDepth = BFS(maze, i, j, k, maxDepth)
+    #-Retrace our steps to redraw path to start
+    print(maxDepth)
+    maze, thePath, maxDepth = retraceSteps(maze, i, j, k, maxDepth)
     
     return maze, thePath, nodesExpanded, maxDepth
 
-#-Traverse the matrix to find the shortest path (BFS)
-def BFS(maze, i, j, k, maxDepth):
+#-Retrace our steps to redraw path to start
+def retraceSteps(maze, i, j, k, maxDepth):
     thePath = [(i,j)]
     while k > 1:
         if i > 0 and maze[i-1][j] == k-1:
@@ -161,41 +167,41 @@ def BFS(maze, i, j, k, maxDepth):
             maxDepth = len(thePath)
     return maze, thePath, maxDepth
 
+if __name__ == '__main__':
+    mazeFile = getMazeFileName()
+    print(mazeFile)
 
-mazeFile = getMazeFileName()
-print(mazeFile)
+    #-Open the maze file(s) and perform setup
+    a = OpenMaze(mazeFile)
+    mazeData = ScanMaze(a)
+    a = SimplifyMaze(a)
+    start = mazeData[0]
+    end = mazeData[1]
 
-#-Open the maze file(s) and perform setup
-a = OpenMaze(mazeFile)
-mazeData = ScanMaze(a)
-a = SimplifyMaze(a)
-start = mazeData[0]
-end = mazeData[1]
+    #-Performs the BFS algorithm
+    maze, thePath, nodesExpanded, maxDepth = StartAnalysis()
 
-#-Performs the BFS algorithm
-maze, thePath, nodesExpanded, maxDepth = StartAnalysis()
-
-#-Creates the flashing on the path (in the gif)
-for i in range(20):
-    if i % 2 == 0:
-        DrawMatrix(a, maze, thePath)
-    else:
-        DrawMatrix(a, maze)
+    #-Creates the flashing on the path (in the gif)
+    for i in range(20):
+        if i % 2 == 0:
+            DrawMatrix(a, maze, thePath)
+        else:
+            DrawMatrix(a, maze)
 
 
-#-Print the path, number of nodes expanded, path cost, max tree depth, and max fringe size
-print("Here is the path from start to end: ")
-print(thePath)
+    #-Print the path, number of nodes expanded, path cost, max tree depth, and max fringe size
+    print("Here is the path from start to end: ")
+    print(thePath)
 
-print("Here is the number of nodes expanded: ", nodesExpanded)
+    print("Here is the number of nodes expanded: ", nodesExpanded)
 
-print("Here is the path cost: ", len(thePath)-1)
+    print("Here is the path cost: ", len(thePath)-1)
 
-print("Here is the maximum tree depth searched: ", maxDepth)
+    print("Here is the maximum tree depth searched: ", maxDepth)
 
-print("Here is the maximum size of the fringe: ", len(a))
+    print("Here is the maximum size of the fringe: ", len(a))
 
-#-Output the maze as a GIF animation
-images[0].save(mazeFile[5:-4]+'.gif',
-               save_all=True, append_images=images[1:],
-               optimize=False, duration=1, loop=0)
+    #-Output the maze as a GIF animation
+    images[0].save(mazeFile[5:-4]+'.gif',
+                save_all=True, append_images=images[1:],
+                optimize=False, duration=1, loop=0)
