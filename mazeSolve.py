@@ -1,9 +1,7 @@
-import math
-import os
-from site import check_enableusersite
 from PIL import Image, ImageDraw
 import pandas as pd
-import numpy as np
+# import numpy as np
+from collections import deque
 images = []
 
 #-Open the maze file and output a numpy array... returns numpy array
@@ -17,9 +15,10 @@ def OpenMaze(filename):
         data = data.drop(data.columns[[0, len(data.columns)-1]], axis=1)
         #-convert the dataframe to a numpy array
         data = data.values
-    except fileNotFoundException:
-        print("File not found")
-    return data;
+    except FileNotFoundError:
+        print(f"File {filename} not found")
+        exit()
+    return data
 
 #-Scan locations by searching down columns... returns array[start Location, goal Location, list of wall locations]
 def ScanMaze(maze):
@@ -59,7 +58,7 @@ def SimplifyMaze(maze):
 #-Check the surrounding 'nodes',
 # k:            a counter for the amount of nodes we have encountered
 # maze:         array of 0s and 1s: 1s are walls and 0s are spaces
-def MakeStep(k, maze):
+def aStarAlgorithm(maze, a, start, end):
     open = []
     closed = []
     # push start node
@@ -67,6 +66,8 @@ def MakeStep(k, maze):
     #print(end)
 
     maxDepth = 0
+    nodesExpanded = 0
+    fringe = len(open)
 
     # while open has something in it
     while(open):
@@ -77,13 +78,11 @@ def MakeStep(k, maze):
         if q[4] > maxDepth:
             maxDepth = q[4]
         
-        k += 1
+        nodesExpanded += 1
 
         #print('step:', k, 'at', (q[0]+1,q[1]+1))
         #print('f:', q[2]+q[3])
-        maze[q[0]][q[1]] = k if k != 1 else -1
-        g = q[2]
-        h = q[3]
+        maze[q[0]][q[1]] = nodesExpanded if nodesExpanded != 1 else -1
 
         successor = []
         
@@ -106,6 +105,7 @@ def MakeStep(k, maze):
             # if we found end goal
             if [node[0], node[1]] == end:
                 maze[end[0]][end[1]] = 1
+                q = node
                 #print('end goal found')
                 endFound = True
                 break
@@ -129,13 +129,93 @@ def MakeStep(k, maze):
             open.append(node)
 
         closed.append((q[0], q[1]))
-        DrawMatrix(a, maze)
+        DrawMatrix(a, maze, start, end)
+
+        if len(open) > fringe:
+            fringe = len(open)
+
         if endFound:
-            return maxDepth
+            if q[4] > maxDepth:
+                maxDepth = q[4]
+            return maxDepth, nodesExpanded, fringe
         #print()
 
+def bfsAlgorithm(maze, a, start, end):
+    open = deque()
+    closed = []
+    # push start node
+    open.append([start[0],start[1], 0])
+    #print(end)
 
-def DrawMatrix(a, maze, thePath = []):
+    maxDepth = 0
+    nodesExpanded = 0
+    fringe = 1
+
+    # while open has something in it
+    while(open):
+        q = open.popleft()
+
+        if q[2] > maxDepth:
+            maxDepth = q[2]
+        
+        nodesExpanded += 1
+
+        #print('step:', k, 'at', (q[0]+1,q[1]+1))
+        maze[q[0]][q[1]] = nodesExpanded if nodesExpanded != 1 else -1
+
+        successor = []
+        
+        # above
+        successor.append([q[0]-1, q[1], q[2]+1])
+        # left
+        successor.append([q[0], q[1]-1, q[2]+1])
+        # down
+        successor.append([q[0]+1, q[1], q[2]+1])
+        # right
+        successor.append([q[0], q[1]+1, q[2]+1])
+
+        endFound = False
+        
+        for node in successor:
+            # if we found end goal
+            if [node[0], node[1]] == end:
+                maze[end[0]][end[1]] = 1
+                #print('end goal found')
+                q = node
+                endFound = True
+                break
+            
+            # If we find a wall
+            if a[node[0]][node[1]] == 1:
+                #print((node[0]+1,node[1]+1), 'is wall')
+                continue
+
+            # if location has been visited
+            if (node[0], node[1]) in closed:
+                #print((node[0]+1,node[1]+1), 'visited')
+                continue
+
+            # if we are already visiting a location
+            if any(sublist[0] == node[0] and sublist[1] == node[1] for sublist in open):
+                #print('visiting', (node[0]+1,node[1]+1))
+                continue
+            
+            #print('appending', (node[0]+1,node[1]+1))
+            open.append(node)
+
+        closed.append((q[0], q[1]))
+        DrawMatrix(a, maze, start, end)
+
+        if len(open) > fringe:
+            fringe = len(open)
+
+        if endFound:
+            if q[2] > maxDepth:
+                maxDepth = q[2]
+            return maxDepth, nodesExpanded, fringe
+        #print()
+
+def DrawMatrix(a, maze, start, end, thePath = []):
     #-Perform setup for graphical display of maze
     zoom = 15
     borders = 4
@@ -168,41 +248,57 @@ def DrawMatrix(a, maze, thePath = []):
     images.append(im)
 
 #-Take input from user for maze file name
-def getMazeFileName():
-    mazeFile = input("Enter the name of the maze file: ")
+def getMazeFileName(mazeFile = ''):
+    if mazeFile == '':
+        mazeFile = input("Enter the name of the maze file: ")
     return 'Maze/'+mazeFile+'.lay'
 
-def StartAnalysis():
+def aStarAnalysis(a, start, end):
     #-Create an empty matrix to store the path
     maze = []
     for i in range(len(a)):
         maze.append([])
         for j in range(len(a[i])):
-            maze[-1].append(0)
+            maze[i].append(0)
 
     #-Save the start point, initialize counter variable (k)
     i,j = start
     maze[i][j] = -1
-    k = 0
 
     #-Makes steps, until it reaches the end. Then it draws the current state of the matrix
-    maxDepth = MakeStep(k, maze)
-    nodesExpanded = k
-
-    #-Save the end point, initialize counter variable (k)
-    k = maze[i][j]
+    maxDepth, nodesExpanded, fringe = aStarAlgorithm(maze, a, start, end)
 
     #-Retrace our steps to redraw path to start
-    maze, thePath, maxDepth = retraceSteps(maze, end, k, maxDepth)
+    maze, thePath = retraceSteps(a, maze, end, start, end)
     
-    return maze, thePath, nodesExpanded, maxDepth
+    return maze, thePath, nodesExpanded, maxDepth, fringe
+
+def bfsAnalysis(a, start, end):
+    #-Create an empty matrix to store the path
+    maze = []
+    for i in range(len(a)):
+        maze.append([])
+        for j in range(len(a[i])):
+            maze[i].append(0)
+
+    #-Save the start point, initialize counter variable (k)
+    i,j = start
+    maze[i][j] = -1
+
+    #-Makes steps, until it reaches the end. Then it draws the current state of the matrix
+    maxDepth, nodesExpanded, fringe = bfsAlgorithm(maze, a, start, end)
+
+    #-Retrace our steps to redraw path to start
+    maze, thePath = retraceSteps(a, maze, end, start, end)
+    
+    return maze, thePath, nodesExpanded, maxDepth, fringe
 
 #-Retrace our steps to redraw path to start
 # maze:     array of 0s and 1s: 1s are walls and 0s are spaces with step numbers inserted
 # cursor:   value we are looking at (starts at end)
 # k:        the step value at the maze's endpoint
 # maxDepth: the maximum depth we traversed
-def retraceSteps(maze, cursor, k, maxDepth):
+def retraceSteps(a, maze, cursor, start, end):
     thePath = [cursor]
     # print((cursor[0]+1, cursor[1]+1), maze[cursor[0]][cursor[1]], "\t", (start[0]+1, start[1]+1), maze[start[0]][start[1]])
     while cursor != start:
@@ -211,18 +307,15 @@ def retraceSteps(maze, cursor, k, maxDepth):
         cursor = min(coordPairs, key=lambda x: maze[x[0]][x[1]] if maze[x[0]][x[1]] != 0 and maze[x[0]][x[1]] != 1 else float('inf'))
         # print((cursor[0]+1, cursor[1]+1), maze[cursor[0]][cursor[1]])
         thePath.append(cursor)
-        DrawMatrix(a, maze, thePath)
-
-        if maxDepth < len(thePath):
-            maxDepth = len(thePath)
+        DrawMatrix(a, maze, start, end, thePath)
 
     thePath.reverse()
-    return maze, thePath, maxDepth
+    return maze, thePath
 
 
-if __name__ == '__main__':
-    mazeFile = getMazeFileName()
-    print(mazeFile)
+def aStar(mazeFile = ''):
+    print(f'\n--- aStar Algorithm {mazeFile} ---')
+    mazeFile = getMazeFileName(mazeFile)
 
     #-Open the maze file(s) and perform setup
     a = OpenMaze(mazeFile)
@@ -232,14 +325,14 @@ if __name__ == '__main__':
     end = mazeData[1]
 
     #-Performs the aStar algorithm
-    maze, thePath, nodesExpanded, maxDepth = StartAnalysis()
+    maze, thePath, nodesExpanded, maxDepth, fringe = aStarAnalysis(a, start, end)
 
     #-Creates the flashing on the path (in the gif)
     for i in range(20):
         if i % 2 == 0:
-            DrawMatrix(a, maze, thePath)
+            DrawMatrix(a, maze, start, end, thePath)
         else:
-            DrawMatrix(a, maze)
+            DrawMatrix(a, maze, start, end)
 
 
     #-Print the path, number of nodes expanded, path cost, max tree depth, and max fringe size
@@ -252,10 +345,58 @@ if __name__ == '__main__':
 
     print("Here is the maximum tree depth searched: ", maxDepth)
 
-    print("Here is the maximum size of the fringe: ", len(a))
+    print("Here is the maximum size of the fringe: ", fringe)
 
     #-Output the maze as a GIF animation
     images[0].save(mazeFile[5:-4]+'-ASTAR.gif',
                 save_all=True, append_images=images[1:],
                 optimize=False, duration=1, loop=0)
 
+def bfs(mazeFile = ''):
+    print(f'\n--- bfs Algorithm {mazeFile} ---')
+    mazeFile = getMazeFileName(mazeFile)
+
+    #-Open the maze file(s) and perform setup
+    a = OpenMaze(mazeFile)
+    mazeData = ScanMaze(a)
+    a = SimplifyMaze(a)
+    start = mazeData[0]
+    end = mazeData[1]
+
+    #-Performs the BFS algorithm
+    maze, thePath, nodesExpanded, maxDepth, fringe = bfsAnalysis(a, start, end)
+
+    #-Creates the flashing on the path (in the gif)
+    for i in range(20):
+        if i % 2 == 0:
+            DrawMatrix(a, maze, start, end, thePath)
+        else:
+            DrawMatrix(a, maze, start, end)
+
+
+    #-Print the path, number of nodes expanded, path cost, max tree depth, and max fringe size
+    print("Here is the path from start to end: ")
+    print(thePath)
+
+    print("Here is the number of nodes expanded: ", nodesExpanded)
+
+    print("Here is the path cost: ", len(thePath)-1)
+
+    print("Here is the maximum tree depth searched: ", maxDepth)
+
+    print("Here is the maximum size of the fringe: ", fringe)
+
+    #-Output the maze as a GIF animation
+    images[0].save(mazeFile[5:-4]+'-BFS.gif',
+                save_all=True, append_images=images[1:],
+                optimize=False, duration=1, loop=0)
+
+if __name__ == '__main__':
+    mazeFiles = ['smallMaze', 'mediumMaze', 'bigMaze', 'sampleMazeFile', 'openMaze']
+    mazeFile = mazeFiles[0]
+
+    # for mazeFile in mazeFiles:
+    images = []
+    bfs(mazeFile)
+    images = []
+    aStar(mazeFile)
