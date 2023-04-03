@@ -253,7 +253,7 @@ def getMazeFileName(mazeFile = ''):
         mazeFile = input("Enter the name of the maze file: ")
     return 'Maze/'+mazeFile+'.lay'
 
-def aStarAnalysis(a, start, end):
+def analysis(a, start, end, algorithm = ''):
     #-Create an empty matrix to store the path
     maze = []
     for i in range(len(a)):
@@ -266,27 +266,11 @@ def aStarAnalysis(a, start, end):
     maze[i][j] = -1
 
     #-Makes steps, until it reaches the end. Then it draws the current state of the matrix
-    maxDepth, nodesExpanded, fringe = aStarAlgorithm(maze, a, start, end)
-
-    #-Retrace our steps to redraw path to start
-    maze, thePath = retraceSteps(a, maze, end, start, end)
+    if (algorithm.lower() == 'bfs'):
+        maxDepth, nodesExpanded, fringe = bfsAlgorithm(maze, a, start, end)
+    elif (algorithm.lower() == 'astar'):
+        maxDepth, nodesExpanded, fringe = aStarAlgorithm(maze, a, start, end)
     
-    return maze, thePath, nodesExpanded, maxDepth, fringe
-
-def bfsAnalysis(a, start, end):
-    #-Create an empty matrix to store the path
-    maze = []
-    for i in range(len(a)):
-        maze.append([])
-        for j in range(len(a[i])):
-            maze[i].append(0)
-
-    #-Save the start point, initialize counter variable (k)
-    i,j = start
-    maze[i][j] = -1
-
-    #-Makes steps, until it reaches the end. Then it draws the current state of the matrix
-    maxDepth, nodesExpanded, fringe = bfsAlgorithm(maze, a, start, end)
 
     #-Retrace our steps to redraw path to start
     maze, thePath = retraceSteps(a, maze, end, start, end)
@@ -313,8 +297,8 @@ def retraceSteps(a, maze, cursor, start, end):
     return maze, thePath
 
 
-def aStar(mazeFile = ''):
-    print(f'\n--- aStar Algorithm {mazeFile} ---')
+def main(mazeFile = '', algorithm = ''):
+    print(f'\n--- {algorithm} Algorithm {mazeFile} ---')
     mazeFile = getMazeFileName(mazeFile)
 
     #-Open the maze file(s) and perform setup
@@ -325,8 +309,8 @@ def aStar(mazeFile = ''):
     end = mazeData[1]
 
     #-Performs the aStar algorithm
-    maze, thePath, nodesExpanded, maxDepth, fringe = aStarAnalysis(a, start, end)
-
+    maze, thePath, nodesExpanded, maxDepth, fringe = analysis(a, start, end, algorithm)
+    
     #-Creates the flashing on the path (in the gif)
     for i in range(20):
         if i % 2 == 0:
@@ -338,58 +322,16 @@ def aStar(mazeFile = ''):
     #-Print the path, number of nodes expanded, path cost, max tree depth, and max fringe size
     print("Here is the path from start to end: ")
     print(thePath)
-
     print("Here is the number of nodes expanded: ", nodesExpanded)
-
     print("Here is the path cost: ", len(thePath)-1)
-
     print("Here is the maximum tree depth searched: ", maxDepth)
-
     print("Here is the maximum size of the fringe: ", fringe)
 
     #-Output the maze as a GIF animation
-    images[0].save(mazeFile[5:-4]+'-ASTAR.gif',
+    images[0].save(mazeFile[5:-4]+f'-{algorithm.upper()}.gif',
                 save_all=True, append_images=images[1:],
                 optimize=False, duration=1, loop=0)
-
-def bfs(mazeFile = ''):
-    print(f'\n--- bfs Algorithm {mazeFile} ---')
-    mazeFile = getMazeFileName(mazeFile)
-
-    #-Open the maze file(s) and perform setup
-    a = OpenMaze(mazeFile)
-    mazeData = ScanMaze(a)
-    a = SimplifyMaze(a)
-    start = mazeData[0]
-    end = mazeData[1]
-
-    #-Performs the BFS algorithm
-    maze, thePath, nodesExpanded, maxDepth, fringe = bfsAnalysis(a, start, end)
-
-    #-Creates the flashing on the path (in the gif)
-    for i in range(20):
-        if i % 2 == 0:
-            DrawMatrix(a, maze, start, end, thePath)
-        else:
-            DrawMatrix(a, maze, start, end)
-
-
-    #-Print the path, number of nodes expanded, path cost, max tree depth, and max fringe size
-    print("Here is the path from start to end: ")
-    print(thePath)
-
-    print("Here is the number of nodes expanded: ", nodesExpanded)
-
-    print("Here is the path cost: ", len(thePath)-1)
-
-    print("Here is the maximum tree depth searched: ", maxDepth)
-
-    print("Here is the maximum size of the fringe: ", fringe)
-
-    #-Output the maze as a GIF animation
-    images[0].save(mazeFile[5:-4]+'-BFS.gif',
-                save_all=True, append_images=images[1:],
-                optimize=False, duration=1, loop=0)
+    
 
 if __name__ == '__main__':
     mazeFiles = ['smallMaze', 'mediumMaze', 'bigMaze', 'sampleMazeFile', 'openMaze']
@@ -397,6 +339,6 @@ if __name__ == '__main__':
 
     # for mazeFile in mazeFiles:
     images = []
-    bfs(mazeFile)
+    main(mazeFile, 'bfs')
     images = []
-    aStar(mazeFile)
+    main(mazeFile, 'aStar')
