@@ -1,6 +1,5 @@
 from PIL import Image, ImageDraw
 import pandas as pd
-# import numpy as np
 from collections import deque
 images = []
 
@@ -80,8 +79,6 @@ def aStarAlgorithm(maze, a, start, end):
         
         nodesExpanded += 1
 
-        #print('step:', k, 'at', (q[0]+1,q[1]+1))
-        #print('f:', q[2]+q[3])
         maze[q[0]][q[1]] = nodesExpanded if nodesExpanded != 1 else -1
 
         successor = []
@@ -106,26 +103,21 @@ def aStarAlgorithm(maze, a, start, end):
             if [node[0], node[1]] == end:
                 maze[end[0]][end[1]] = 1
                 q = node
-                #print('end goal found')
                 endFound = True
                 break
             
             # If we find a wall
             if a[node[0]][node[1]] == 1:
-                #print((node[0]+1,node[1]+1), 'is wall')
                 continue
 
             # if location has been visited
             if (node[0], node[1]) in closed:
-                #print((node[0]+1,node[1]+1), 'visited')
                 continue
 
             # if we are already visiting a location
             if any(sublist[0] == node[0] and sublist[1] == node[1] for sublist in open):
-                #print('visiting', (node[0]+1,node[1]+1))
                 continue
             
-            #print('appending', (node[0]+1,node[1]+1))
             open.append(node)
 
         closed.append((q[0], q[1]))
@@ -138,14 +130,12 @@ def aStarAlgorithm(maze, a, start, end):
             if q[4] > maxDepth:
                 maxDepth = q[4]
             return maxDepth, nodesExpanded, fringe
-        #print()
 
 def bfsAlgorithm(maze, a, start, end):
     open = deque()
     closed = []
     # push start node
     open.append([start[0],start[1], 0])
-    #print(end)
 
     maxDepth = 0
     nodesExpanded = 0
@@ -160,7 +150,6 @@ def bfsAlgorithm(maze, a, start, end):
         
         nodesExpanded += 1
 
-        #print('step:', k, 'at', (q[0]+1,q[1]+1))
         maze[q[0]][q[1]] = nodesExpanded if nodesExpanded != 1 else -1
 
         successor = []
@@ -180,27 +169,22 @@ def bfsAlgorithm(maze, a, start, end):
             # if we found end goal
             if [node[0], node[1]] == end:
                 maze[end[0]][end[1]] = 1
-                #print('end goal found')
                 q = node
                 endFound = True
                 break
             
             # If we find a wall
             if a[node[0]][node[1]] == 1:
-                #print((node[0]+1,node[1]+1), 'is wall')
                 continue
 
             # if location has been visited
             if (node[0], node[1]) in closed:
-                #print((node[0]+1,node[1]+1), 'visited')
                 continue
 
             # if we are already visiting a location
             if any(sublist[0] == node[0] and sublist[1] == node[1] for sublist in open):
-                #print('visiting', (node[0]+1,node[1]+1))
                 continue
             
-            #print('appending', (node[0]+1,node[1]+1))
             open.append(node)
 
         closed.append((q[0], q[1]))
@@ -213,7 +197,6 @@ def bfsAlgorithm(maze, a, start, end):
             if q[2] > maxDepth:
                 maxDepth = q[2]
             return maxDepth, nodesExpanded, fringe
-        #print()
 
 def DrawMatrix(a, maze, start, end, thePath = []):
     #-Perform setup for graphical display of maze
